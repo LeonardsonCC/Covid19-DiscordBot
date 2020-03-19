@@ -3,7 +3,7 @@ import requests
 import discord
 from time import sleep
 
-TOKEN = 'NjkwMDExNjIwMDg0Mjg1NDkw.XnLOzA.zjNZyEz_ny-4Wzoev-y3mYhY828'
+TOKEN = ''
 
 client = discord.Client()
 actual_state = {}
