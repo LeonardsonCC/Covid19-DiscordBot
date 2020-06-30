@@ -1,6 +1,7 @@
 import os
 import requests
 import discord
+from datetime import datetime
 from time import sleep
 
 TOKEN = ''
@@ -8,38 +9,40 @@ TOKEN = ''
 client = discord.Client()
 actual_state = {}
 
-def sortFunc(e):
-    return e['deaths']
-
 async def update_status(channel):
     global actual_state
     while True:
-        result = requests.get("https://api.coronaanalytic.com/brazil").json()
+        result = requests.get("https://covid19-brazil-api.now.sh/api/report/v1").json()
         if result:
-            totals = {
-                'cases': 0,
-                'deaths': 0,
-                'suspects': 0
-            }
-            message = "ÚLTIMA ATUALIZAÇÃO: {} {}\n\n".format(result['date'], result['time'])
-            result['values'].sort(key=sortFunc, reverse=True)
+            if result != actual_state:
+                actual_state = result
 
-            if result['values'] != actual_state:
-                actual_state = result['values']
-                for state in result['values']:
-                    message += "{}: Confirmados [{}] | Mortes [{}] | Suspeitas [{}]\n".format(
-                        state['state'], state['cases'], state['deaths'], state['suspects']
-                    )
-                    totals['cases'] += state['cases']
-                    totals['deaths'] += state['deaths']
-                    totals['suspects'] += state['suspects']
+                totals = {
+                    "cases": 0,
+                    "deaths": 0
+                }
+                message = "Novas Notícias 😢\n"
+                message += "```"
+                for data in result['data']:
+                    totals['cases'] += data['cases']
+                    totals['deaths'] += data['deaths']
 
-                message += "\n\nConfirmados [{}] | Mortes [{}] | Suspeitas [{}]".format(
-                    totals['cases'], totals['deaths'], totals['suspects']
-                )
+                    message += "{state}:\n- Casos: {cases}\n- Mortes: {deaths}\n\n".format(
+                            state=data['state'],
+                            cases=data['cases'],
+                            deaths=data['deaths']
+                        )
+                message += "```\n"
+
+                message += "Totais\n"
+                message += "```"
+                message += "Casos: {}\n".format(str(totals['cases']))
+                message += "Mortes: {}\n".format(str(totals['deaths']))
+                message += "```"
+
                 await channel.send(message)
         sleep(10)
-        
+
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
@@ -47,6 +50,6 @@ async def on_ready():
     for channel in client.get_all_channels():
         if isinstance(channel, discord.TextChannel):
             await update_status(channel)
-        
+
 
 client.run(TOKEN)
